@@ -44,7 +44,7 @@ const FormLogin = () => {
             <FloatingLabel controlId="floatingPassword" label="Password">
                 <Form.Control type="password" placeholder="Password" onChange={handleChange} name="password" autoComplete="off" />
             </FloatingLabel>
-            <Button variant="primary" type="submit" className="mt-3">
+            <Button variant="primary" type="submit" className="mt-3 w-100">
                 Login
             </Button>
         </form>
