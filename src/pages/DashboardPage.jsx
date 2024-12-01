@@ -1,23 +1,28 @@
-import { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Container, Row, Col, Card } from "react-bootstrap";
+import { Container, Row, Col, Card, Button, Modal, Form } from "react-bootstrap";
+import "bootstrap/dist/css/bootstrap.min.css";
+import { toast } from "sonner";
 
 const DashboardPage = () => {
-    // menggunakan hook useNavigate untuk mengatur navigasi
     const navigate = useNavigate();
-
-    // mengambil data user dari localstorage
     const user = JSON.parse(localStorage.getItem("user"));
+    const [bahanBaku, setBahanBaku] = useState([]);
+    const [showModal, setShowModal] = useState(false);
+    const [editIndex, setEditIndex] = useState(null);
+    const [formData, setFormData] = useState({
+        nama: "",
+        status: "",
+        tanggal: "",
+        jumlah: "",
+    });
 
-    // menghandle jika user belum login
     useEffect(() => {
-        const user = JSON.parse(localStorage.getItem("user"));
         if (!user) {
             navigate("/login");
         }
     }, [navigate]);
 
-    // mengubah format tanggal
     const formatDate = (date) => {
         const options = {
             weekday: "long",
@@ -29,6 +34,58 @@ const DashboardPage = () => {
             second: "numeric",
         };
         return new Date(date).toLocaleDateString("id-ID", options);
+    };
+
+    const getStatusBadgeColor = (status) => {
+        switch (status) {
+            case "Pending":
+                return "primary";
+            case "Diproses":
+                return "warning text-dark";
+            case "Selesai":
+                return "success";
+            default:
+                return "secondary";
+        }
+    };
+
+    const handleShowModal = (index = null) => {
+        setEditIndex(index);
+        if (index !== null) {
+            setFormData({ ...bahanBaku[index] });
+        } else {
+            setFormData({ nama: "", status: "", tanggal: "", jumlah: "" });
+        }
+        setShowModal(true);
+    };
+
+    const handleHideModal = () => {
+        setShowModal(false);
+        setEditIndex(null);
+    };
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData({ ...formData, [name]: value });
+    };
+
+    const handleSave = () => {
+        if (editIndex !== null) {
+            const updatedBahanBaku = [...bahanBaku];
+            updatedBahanBaku[editIndex] = formData;
+            setBahanBaku(updatedBahanBaku);
+            toast.success("Berhasil Ubah Data Bahan Baku!");
+        } else {
+            setBahanBaku([...bahanBaku, formData]);
+            toast.success("Berhasil Tambah Data Bahan Baku!");
+        }
+        handleHideModal();
+    };
+
+    const handleDelete = (index) => {
+        const updatedBahanBaku = bahanBaku.filter((_, i) => i !== index);
+        setBahanBaku(updatedBahanBaku);
+        toast.success("Berhasil Hapus Data!");
     };
 
     return (
@@ -58,6 +115,124 @@ const DashboardPage = () => {
                     </Card>
                 </Col>
             </Row>
+
+            <div>
+                <h3>Daftar Pembelian Bahan Baku</h3>
+                <p>
+                    Saat ini terdapat <strong>{bahanBaku.length}</strong> daftar pembelian bahan baku.
+                </p>
+                <Button variant="success" onClick={() => handleShowModal()}>
+                    <i className="bi bi-plus-square me-2"></i>
+                    Tambah Bahan Baku
+                </Button>
+                <Row className="mt-3">
+                    {bahanBaku.length > 0 ? (
+                        bahanBaku.map((item, index) => (
+                            <Col md={4} key={index}>
+                                <Card className="mb-3">
+                                    <Card.Body>
+                                        <h5 className="fw-bold">{item.nama} - {item.jumlah}</h5>
+
+                                        <p className="mb-2">
+                                            <strong>Tanggal:</strong> {item.tanggal}
+                                        </p>
+
+                                        <p>
+                                            <span className={`badge bg-${getStatusBadgeColor(item.status)}`}>
+                                                {item.status}
+                                            </span>
+                                        </p>
+
+                                        <div className="d-flex justify-content-start mt-3">
+                                            <Button
+                                                variant="danger"
+                                                className="me-2"
+                                                onClick={() => handleDelete(index)}
+                                            >
+                                                <i className="bi bi-trash me-2"></i>
+                                                Hapus
+                                            </Button>
+                                            <Button
+                                                variant="primary"
+                                                onClick={() => handleShowModal(index)}
+                                            >
+                                                <i className="bi bi-pencil-square me-2"></i>
+                                                Edit
+                                            </Button>
+                                        </div>
+                                    </Card.Body>
+                                </Card>
+                            </Col>
+                        ))
+                    ) : (
+                        <p className="text-center mt-3">Tidak ada data bahan baku.</p>
+                    )}
+                </Row>
+            </div>
+
+            <Modal show={showModal} onHide={handleHideModal}>
+                <Modal.Header closeButton>
+                    <Modal.Title>{editIndex !== null ? "Edit" : "Tambah"} Bahan Baku</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <Form>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Nama Bahan Baku</Form.Label>
+                            <Form.Control
+                                type="text"
+                                name="nama"
+                                placeholder="Nama Bahan Baku"
+                                value={formData.nama}
+                                onChange={handleInputChange}
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Status Pesanan</Form.Label>
+                            <Form.Select
+                                name="status"
+                                value={formData.status}
+                                onChange={handleInputChange}
+                            >
+                                <option value="" disabled>
+                                    Pilih Status
+                                </option>
+                                <option value="Pending">Pending</option>
+                                <option value="Diproses">Diproses</option>
+                                <option value="Selesai">Selesai</option>
+                            </Form.Select>
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Tanggal Pesanan</Form.Label>
+                            <Form.Control
+                                type="date"
+                                name="tanggal"
+                                placeholder="dd/mm/yyyy"
+                                value={formData.tanggal}
+                                onChange={handleInputChange}
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Jumlah Pesanan</Form.Label>
+                            <Form.Control
+                                type="text"
+                                name="jumlah"
+                                placeholder="Jumlah Pesanan"
+                                value={formData.jumlah}
+                                onChange={handleInputChange}
+                            />
+                        </Form.Group>
+                    </Form>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={handleHideModal}>
+                        Batal
+                    </Button>
+                    <Button variant="primary" onClick={handleSave}>
+                        <i className="bi bi-save me-2"></i>
+                        Simpan
+                    </Button>
+                </Modal.Footer>
+            </Modal>
         </Container>
     );
 };
